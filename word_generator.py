@@ -218,43 +218,92 @@ class WordGenerator:
     def _insert_complex_placeholders(self, paragraph, html_data, placeholders):
         """
         Insert complex HTML content after the placeholder paragraph
+        Extracts formatting from placeholder and applies to inserted HTML content
         """
-        
-        # Clear the placeholder paragraph (it will be replaced)
-        # But keep track of its position
+
+        # Extract style information from the placeholder paragraph
+        style_info = self._extract_paragraph_style(paragraph)
+
+        # Get parent and position
         parent = paragraph._element.getparent()
         placeholder_index = parent.index(paragraph._element)
-        
-        # Remove placeholder text from paragraph
+
+        # Get full paragraph text to check for placeholders
+        full_text = paragraph.text
+
+        # Check if paragraph contains ONLY placeholders (should be removed)
+        # or has other text (should keep non-placeholder parts)
+        has_other_text = False
+        temp_text = full_text
         for placeholder in placeholders:
             placeholder_tag = f"{{{{{placeholder}}}}}"
-            
-            # Clear runs containing placeholder
-            for run in paragraph.runs:
-                if placeholder_tag in run.text:
-                    run.text = run.text.replace(placeholder_tag, "").strip()
-        
-        # If paragraph is now empty, remove it
-        if not paragraph.text.strip():
-            parent.remove(paragraph._element)
-            placeholder_index -= 1
-        
+            temp_text = temp_text.replace(placeholder_tag, "").strip()
+
+        if temp_text:  # Has other text besides placeholders
+            has_other_text = True
+
+        # Remove placeholder paragraph completely (will be replaced with HTML content)
+        parent.remove(paragraph._element)
+
         # Insert HTML content at the position
         for placeholder in placeholders:
             html_content = html_data.get(placeholder, '')
-            
+
             if html_content and html_content != 'null':
-                print(f"      Inserting HTML for {placeholder}...")
-                
+                print(f"      Inserting HTML for {placeholder} with inherited style...")
+
                 # Create a temporary document to render HTML
                 temp_doc = Document()
-                html_to_word(html_content, temp_doc)
-                
+                html_to_word(html_content, temp_doc, style_info)
+
                 # Copy all elements from temp doc to main doc at position
                 for element in temp_doc.element.body:
                     # Insert after placeholder position
-                    parent.insert(placeholder_index + 1, element)
+                    parent.insert(placeholder_index, element)
                     placeholder_index += 1
+
+    def _extract_paragraph_style(self, paragraph):
+        """
+        Extract style information from a paragraph (font, size, etc.)
+        """
+        style_info = {
+            'font_name': None,
+            'font_size': None,
+            'bold': False,
+            'italic': False,
+        }
+
+        # Get style from first run if available
+        if paragraph.runs:
+            first_run = paragraph.runs[0]
+            if first_run.font.name:
+                style_info['font_name'] = first_run.font.name
+            if first_run.font.size:
+                style_info['font_size'] = first_run.font.size
+            if first_run.bold:
+                style_info['bold'] = first_run.bold
+            if first_run.italic:
+                style_info['italic'] = first_run.italic
+
+        # Fallback to paragraph style
+        if not style_info['font_name'] or not style_info['font_size']:
+            try:
+                para_style = paragraph.style
+                if para_style and para_style.font:
+                    if not style_info['font_name'] and para_style.font.name:
+                        style_info['font_name'] = para_style.font.name
+                    if not style_info['font_size'] and para_style.font.size:
+                        style_info['font_size'] = para_style.font.size
+            except:
+                pass
+
+        # Ultimate fallback
+        if not style_info['font_name']:
+            style_info['font_name'] = 'Arial'
+        if not style_info['font_size']:
+            style_info['font_size'] = Pt(11)
+
+        return style_info
 
 
 # CLI Usage
