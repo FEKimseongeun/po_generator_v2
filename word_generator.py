@@ -1,6 +1,25 @@
 """
-Word Document Generator - Template Mode Fixed
-Properly handles inline placeholder replacement and HTML conversion
+Word Document Generator - Complete Placeholder & Styling Solution
+
+✅ FEATURES:
+1. Inline Placeholder Replacement (multi-run support)
+   - {{PO_NO}}-A01 → 210025-28-126-001-A01
+   - {{DELIVERY_TERMS}} → actual delivery terms
+   - Preserves original formatting (bold, italic, font, size)
+
+2. HTML Block Replacement
+   - {{PAYMENT_FULL}} → complete HTML content
+   - {{WARRANTY}} → complete HTML content
+   - Original placeholder completely removed
+
+3. Style Inheritance
+   - Extracts font name & size from placeholder location
+   - Applies to all inserted HTML content (text, lists, tables)
+   - Ensures consistent document styling
+
+4. Table Borders
+   - All HTML tables rendered with black borders
+   - Headers automatically bolded
 """
 
 from docx import Document
@@ -163,30 +182,41 @@ class WordGenerator:
     def _process_paragraph(self, paragraph, html_data):
         """
         Process a single paragraph, replacing placeholders
-        
+
         Strategy:
-        1. Simple fields (PO_NO, MOM_DATE): inline replacement within runs
-        2. Complex fields (PAYMENT_FULL): insert HTML blocks after paragraph
+        1. Simple fields (PO_NO, MOM_DATE, DELIVERY_TERMS):
+           - Inline replacement preserving original text formatting
+           - Example: "PO No. {{PO_NO}}-A01" → "PO No. 210025-28-126-001-A01"
+
+        2. Complex fields (PAYMENT_FULL, WARRANTY, etc.):
+           - Replace entire paragraph with HTML-rendered content
+           - Inherit font/size from original placeholder location
         """
-        
+
         full_text = paragraph.text
-        
+
         # Check if paragraph contains any placeholders
         placeholders_found = re.findall(r'\{\{([A-Z_]+)\}\}', full_text)
-        
+
         if not placeholders_found:
             return
-        
-        print(f"   Found placeholders: {placeholders_found} in: {full_text[:50]}...")
-        
+
+        print(f"   📌 Found placeholders: {placeholders_found}")
+        print(f"      In text: {full_text[:80]}...")
+
         # Separate simple vs complex placeholders
         simple_placeholders = [p for p in placeholders_found if p in self.SIMPLE_FIELDS]
         complex_placeholders = [p for p in placeholders_found if p not in self.SIMPLE_FIELDS]
-        
+
+        if simple_placeholders:
+            print(f"      🔤 Inline replacement for: {simple_placeholders}")
+        if complex_placeholders:
+            print(f"      📄 HTML replacement for: {complex_placeholders}")
+
         # Handle simple placeholders - INLINE REPLACEMENT
         if simple_placeholders:
             self._replace_simple_placeholders(paragraph, html_data, simple_placeholders)
-        
+
         # Handle complex placeholders - INSERT HTML BLOCKS AFTER
         if complex_placeholders:
             self._insert_complex_placeholders(paragraph, html_data, complex_placeholders)
@@ -200,20 +230,49 @@ class WordGenerator:
         replacements = {}
         for placeholder in placeholders:
             value = html_data.get(placeholder, f"[{placeholder} NOT FOUND]")
-            replacements[f"{{{{{placeholder}}}}}"] = value
-        
-        # Replace in runs to preserve formatting
-        for run in paragraph.runs:
-            original_text = run.text
-            modified_text = original_text
-            
-            for placeholder_tag, value in replacements.items():
-                if placeholder_tag in modified_text:
-                    modified_text = modified_text.replace(placeholder_tag, value)
-                    print(f"      Replaced {placeholder_tag} with {value}")
-            
-            if modified_text != original_text:
-                run.text = modified_text
+            placeholder_tag = f"{{{{{placeholder}}}}}"
+            replacements[placeholder_tag] = value
+
+        # Replace all placeholders in the full text
+        modified_text = full_text
+        for placeholder_tag, value in replacements.items():
+            if placeholder_tag in modified_text:
+                modified_text = modified_text.replace(placeholder_tag, value)
+                print(f"         ✓ {placeholder_tag} → {value}")
+
+        # If text changed, rebuild the paragraph runs
+        if modified_text != full_text:
+            # Save the formatting of the first run (if exists)
+            first_run_format = None
+            if paragraph.runs:
+                first_run = paragraph.runs[0]
+                first_run_format = {
+                    'bold': first_run.bold,
+                    'italic': first_run.italic,
+                    'underline': first_run.underline,
+                    'font_name': first_run.font.name,
+                    'font_size': first_run.font.size,
+                }
+
+            # Clear all runs
+            for run in paragraph.runs:
+                run.text = ""
+
+            # Add new run with replaced text
+            new_run = paragraph.add_run(modified_text)
+
+            # Restore formatting
+            if first_run_format:
+                if first_run_format['bold'] is not None:
+                    new_run.bold = first_run_format['bold']
+                if first_run_format['italic'] is not None:
+                    new_run.italic = first_run_format['italic']
+                if first_run_format['underline'] is not None:
+                    new_run.underline = first_run_format['underline']
+                if first_run_format['font_name']:
+                    new_run.font.name = first_run_format['font_name']
+                if first_run_format['font_size']:
+                    new_run.font.size = first_run_format['font_size']
     
     def _insert_complex_placeholders(self, paragraph, html_data, placeholders):
         """
@@ -250,7 +309,7 @@ class WordGenerator:
             html_content = html_data.get(placeholder, '')
 
             if html_content and html_content != 'null':
-                print(f"      Inserting HTML for {placeholder} with inherited style...")
+                print(f"         ✓ Inserting HTML for {{{{{placeholder}}}}} with style: {style_info['font_name']}, {style_info['font_size']}")
 
                 # Create a temporary document to render HTML
                 temp_doc = Document()

@@ -1,6 +1,22 @@
 """
-HTML to Word Converter - Fixed Version
-Handles missing styles gracefully
+HTML to Word Converter - Complete Styling Solution
+
+✅ FEATURES:
+1. Style Inheritance
+   - Accepts style_info parameter (font_name, font_size)
+   - Applies inherited styles to all content (text, lists, tables)
+   - Ensures consistent formatting
+
+2. Table Borders
+   - XML-based border generation
+   - All borders: top, left, bottom, right, insideH, insideV
+   - Black color, single line style
+
+3. Comprehensive HTML Support
+   - Paragraphs, headings (h1-h6)
+   - Lists (ordered/unordered)
+   - Tables with headers
+   - Text formatting (bold, italic)
 """
 
 from docx import Document
