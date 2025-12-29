@@ -1,0 +1,146 @@
+{
+    "_description": "MOM-PO 플레이스홀더 매핑 설정. 섹션 번호 기반으로 MOM에서 데이터를 추출합니다.",
+    "_version": "2.0",
+    
+    "placeholder_prefix": "{{",
+    "placeholder_suffix": "}}",
+    
+    "header_fields": {
+        "MOM_NO": {
+            "label": "MOM NO",
+            "description": "MOM/PO 문서 번호",
+            "example": "210025-28-126-001"
+        },
+        "MOM_DATE": {
+            "label": "DATE", 
+            "description": "MOM 작성 날짜",
+            "example": "December 5th, 2024"
+        },
+        "SUBJECT": {
+            "label": "SUBJECT",
+            "description": "MOM 제목/주제",
+            "example": "Commercial Clarification for Modular type chemical injection"
+        }
+    },
+    
+    "section_fields": {
+        "1": {
+            "field_name": "INQUIRY_INFO",
+            "title_pattern": "Inquiry",
+            "sub_fields": {
+                "MR_NO": {
+                    "pattern": "MR-[\\d-]+",
+                    "description": "Material Requisition 번호"
+                },
+                "MR_DATE": {
+                    "pattern": "dated\\s+([A-Za-z]+\\s+\\d+[a-z]*,?\\s+\\d{4})",
+                    "description": "MR 날짜"
+                },
+                "ITEM_DESC": {
+                    "pattern": "/\\s*(.+?)$",
+                    "description": "품목 설명"
+                }
+            }
+        },
+        "2": {
+            "field_name": "PAYMENT",
+            "title_pattern": "Payment",
+            "subsections": {
+                "2.1": "ADVANCE_PAYMENT",
+                "2.2": "PROGRESS_PAYMENT_1ST",
+                "2.3": "PROGRESS_PAYMENT_2ND",
+                "2.4": "DELIVERY_PAYMENT",
+                "2.5": "FINAL_PAYMENT"
+            }
+        },
+        "3": {
+            "field_name": "WARRANTY",
+            "title_pattern": "Warranty"
+        },
+        "4": {
+            "field_name": "LIQUIDATED_DAMAGES",
+            "title_pattern": "Liquidated Damages",
+            "subsections": {
+                "4.1": "LD_DELIVERY",
+                "4.2": "LD_ENGINEERING",
+                "4.3": "LD_MAX_AGGREGATE"
+            }
+        },
+        "5": {
+            "field_name": "BOND_REQUIREMENTS",
+            "title_pattern": "Bond",
+            "subsections": {
+                "5.1": "BOND_APPLICATION",
+                "5.2": "ADVANCE_PROGRESS_BOND",
+                "5.3": "PERFORMANCE_BOND",
+                "5.4": "WARRANTY_BOND",
+                "5.5": "BOND_ISSUE"
+            }
+        },
+        "6": {
+            "field_name": "OPTIONAL",
+            "title_pattern": "Optional",
+            "subsections": {
+                "6.1": "EXTENDED_WARRANTY",
+                "6.2": "STORAGE_COST"
+            }
+        },
+        "7": {
+            "field_name": "TRAINING_SUPERVISION",
+            "title_pattern": "Supervision|Training"
+        },
+        "8": {
+            "field_name": "DELIVERY_TERMS",
+            "title_pattern": "Delivery Terms"
+        },
+        "9": {
+            "field_name": "PRICE_SCOPE",
+            "title_pattern": "Scope of Supply|Price"
+        },
+        "10": {
+            "field_name": "SPECIAL_NOTE",
+            "title_pattern": "Special Note"
+        },
+        "11": {
+            "field_name": "TITLE_TRANSFER",
+            "title_pattern": "Title Transfer"
+        },
+        "12": {
+            "field_name": "SPARE_PARTS",
+            "title_pattern": "spare parts"
+        },
+        "13": {
+            "field_name": "ATTACHMENTS",
+            "title_pattern": "Attachments",
+            "subsections": {
+                "13.1": "ATTACHMENTS_GENERAL",
+                "13.2": "ATTACHMENTS_TECHNICAL"
+            }
+        }
+    },
+    
+    "derived_fields": {
+        "PO_NO": {
+            "source": "MOM_NO",
+            "transform": "append_suffix",
+            "suffix": "-A01",
+            "description": "PO 번호 (MOM_NO + -A01)"
+        },
+        "PI_NO": {
+            "source": "section_1",
+            "pattern": "([A-Z]+-[A-Z]-[A-Z0-9]+)",
+            "description": "Vendor PI 번호"
+        },
+        "PI_DATE": {
+            "source": "section_1", 
+            "pattern": "dated\\s+([A-Za-z]+\\s+\\d+[a-z]*,?\\s+\\d{4})\\s*$",
+            "description": "Vendor PI 날짜"
+        }
+    },
+    
+    "settings": {
+        "default_po_suffix": "-A01",
+        "date_format": "%B %dth, %Y",
+        "backup_original": true
+    }
+}
