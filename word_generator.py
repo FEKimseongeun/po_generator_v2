@@ -194,26 +194,62 @@ class WordGenerator:
     def _replace_simple_placeholders(self, paragraph, html_data, placeholders):
         """
         Replace simple placeholders inline (e.g., {{PO_NO}}-A01 → 210025-28-126-001-A01)
+
+        CRITICAL: Word documents often split text across multiple runs, so "{{PO_NO}}"
+        might be stored as "{{PO_" + "NO}}" in separate runs. We must process the
+        entire paragraph text as a whole, not run-by-run.
         """
-        
+
+        # Get full paragraph text (concatenate all runs)
+        full_text = paragraph.text
+
         # Build replacement map
         replacements = {}
         for placeholder in placeholders:
             value = html_data.get(placeholder, f"[{placeholder} NOT FOUND]")
-            replacements[f"{{{{{placeholder}}}}}"] = value
-        
-        # Replace in runs to preserve formatting
-        for run in paragraph.runs:
-            original_text = run.text
-            modified_text = original_text
-            
-            for placeholder_tag, value in replacements.items():
-                if placeholder_tag in modified_text:
-                    modified_text = modified_text.replace(placeholder_tag, value)
-                    print(f"      Replaced {placeholder_tag} with {value}")
-            
-            if modified_text != original_text:
-                run.text = modified_text
+            placeholder_tag = f"{{{{{placeholder}}}}}"
+            replacements[placeholder_tag] = value
+
+        # Replace all placeholders in the full text
+        modified_text = full_text
+        for placeholder_tag, value in replacements.items():
+            if placeholder_tag in modified_text:
+                modified_text = modified_text.replace(placeholder_tag, value)
+                print(f"      Replaced {placeholder_tag} with {value}")
+
+        # If text changed, rebuild the paragraph runs
+        if modified_text != full_text:
+            # Save the formatting of the first run (if exists)
+            first_run_format = None
+            if paragraph.runs:
+                first_run = paragraph.runs[0]
+                first_run_format = {
+                    'bold': first_run.bold,
+                    'italic': first_run.italic,
+                    'underline': first_run.underline,
+                    'font_name': first_run.font.name,
+                    'font_size': first_run.font.size,
+                }
+
+            # Clear all runs
+            for run in paragraph.runs:
+                run.text = ""
+
+            # Add new run with replaced text
+            new_run = paragraph.add_run(modified_text)
+
+            # Restore formatting
+            if first_run_format:
+                if first_run_format['bold'] is not None:
+                    new_run.bold = first_run_format['bold']
+                if first_run_format['italic'] is not None:
+                    new_run.italic = first_run_format['italic']
+                if first_run_format['underline'] is not None:
+                    new_run.underline = first_run_format['underline']
+                if first_run_format['font_name']:
+                    new_run.font.name = first_run_format['font_name']
+                if first_run_format['font_size']:
+                    new_run.font.size = first_run_format['font_size']
     
     def _insert_complex_placeholders(self, paragraph, html_data, placeholders):
         """
