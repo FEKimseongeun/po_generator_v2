@@ -224,15 +224,8 @@ class WordGenerator:
     def _replace_simple_placeholders(self, paragraph, html_data, placeholders):
         """
         Replace simple placeholders inline (e.g., {{PO_NO}}-A01 → 210025-28-126-001-A01)
-
-        CRITICAL: Word documents often split text across multiple runs, so "{{PO_NO}}"
-        might be stored as "{{PO_" + "NO}}" in separate runs. We must process the
-        entire paragraph text as a whole, not run-by-run.
         """
-
-        # Get full paragraph text (concatenate all runs)
-        full_text = paragraph.text
-
+        
         # Build replacement map
         replacements = {}
         for placeholder in placeholders:
